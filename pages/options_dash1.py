@@ -171,13 +171,12 @@ for idx, symbol in enumerate(TICKERS):
         "Selected Expiry": None,
         "DTE (days)": np.nan,
         "Target Strike %": STRIKE_PCT,
-        "Target Strike": np.nan,
+        "Forward Value": np.nan,
         "Closest Strike": np.nan,
         "Put Cost": np.nan,
         "Implied Vol": np.nan,
         "Relative % (Put/Spot)": np.nan,
         "Yield % (Put/Strike)": np.nan,
-        "Forward Value": np.nan,
     }
 
     # Update progress
@@ -204,6 +203,15 @@ for idx, symbol in enumerate(TICKERS):
             rows.append(row)
             continue
 
+        # Calculate Forward Value first: STRIKE_PCT * spot * e^(rate * time)
+        if np.isfinite(spot) and np.isfinite(dte):
+            time_years = dte / 365.0
+            forward_value = STRIKE_PCT * spot * np.exp(RISK_FREE_RATE * time_years)
+            row["Forward Value"] = forward_value
+        else:
+            rows.append(row)
+            continue
+
         # Option chain
         chain = t.option_chain(expiry)
         puts = chain.puts.copy()
@@ -211,11 +219,8 @@ for idx, symbol in enumerate(TICKERS):
             rows.append(row)
             continue
 
-        # Find strike closest to STRIKE_PCT * spot
-        target_strike = STRIKE_PCT * spot
-        row["Target Strike"] = target_strike
-
-        puts["strike_diff"] = (puts["strike"] - target_strike).abs()
+        # Find strike closest to Forward Value
+        puts["strike_diff"] = (puts["strike"] - forward_value).abs()
         best = puts.sort_values(["strike_diff"]).iloc[0]
 
         strike = float(best["strike"])
@@ -237,11 +242,6 @@ for idx, symbol in enumerate(TICKERS):
             row["Relative % (Put/Spot)"] = put_cost / spot
         if np.isfinite(put_cost) and put_cost > 0 and strike > 0:
             row["Yield % (Put/Strike)"] = put_cost / strike
-
-        # Forward Value calculation: STRIKE_PCT * spot * e^(rate * time)
-        if np.isfinite(spot) and np.isfinite(dte):
-            time_years = dte / 365.0
-            row["Forward Value"] = STRIKE_PCT * spot * np.exp(RISK_FREE_RATE * time_years)
 
     except Exception as e:
         row["Error"] = str(e)
@@ -321,8 +321,8 @@ st.subheader("📋 Detailed Results")
 
 df_out = df.copy()
 
-money_cols = ["Current Spot", "Target Strike", "Closest Strike", "Put Cost", "Forward Value"]
-pct_cols = ["Relative % (Put/Spot)", "Yield % (Put/Strike)", "Implied Vol"]
+money_cols = ["Current Spot", "Forward Value", "Closest Strike", "Put Cost"]
+pct_cols = ["Target Strike %", "Relative % (Put/Spot)", "Yield % (Put/Strike)", "Implied Vol"]
 
 for col in money_cols:
     if col in df_out.columns:
