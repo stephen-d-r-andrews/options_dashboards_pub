@@ -228,10 +228,10 @@ for idx, symbol in enumerate(TICKERS):
         if np.isfinite(put_cost) and put_cost > 0 and strike > 0:
             row["Yield % (Put/Strike)"] = put_cost / strike
 
-        # Forward Value calculation: target_strike * spot * e^(rate * time)
-        if np.isfinite(target_strike) and np.isfinite(spot) and np.isfinite(dte):
+        # Forward Value calculation: STRIKE_PCT * spot * e^(rate * time)
+        if np.isfinite(spot) and np.isfinite(dte):
             time_years = dte / 365.0
-            row["Forward Value"] = target_strike * spot * np.exp(RISK_FREE_RATE * time_years)
+            row["Forward Value"] = STRIKE_PCT * spot * np.exp(RISK_FREE_RATE * time_years)
 
     except Exception as e:
         row["Error"] = str(e)
