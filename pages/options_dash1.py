@@ -332,3 +332,33 @@ st.download_button(
     file_name=f"options_analysis_{today.strftime('%Y%m%d')}.csv",
     mime="text/csv"
 )
+
+# -----------------------------
+# GPU Section
+# -----------------------------
+st.markdown("---")
+st.subheader("🖥️ GPU Pricing Analysis")
+
+gpu_data = {
+    "GPU": ["H100SXM", "H100PCIE", "H200", "B200", "MI300X", "RTX5090"],
+    "MSRP": [40000, 32000, 45000, 55000, 15000, 1999]
+}
+
+gpu_df = pd.DataFrame(gpu_data)
+gpu_df["30% of MSRP"] = gpu_df["MSRP"] * 0.30
+
+# Format for display
+gpu_df_display = gpu_df.copy()
+gpu_df_display["MSRP"] = gpu_df_display["MSRP"].map(lambda v: f"${v:,.2f}")
+gpu_df_display["30% of MSRP"] = gpu_df_display["30% of MSRP"].map(lambda v: f"${v:,.2f}")
+
+st.dataframe(gpu_df_display, use_container_width=True)
+
+# Download button for GPU data
+gpu_csv = gpu_df.to_csv(index=False)
+st.download_button(
+    label="📥 Download GPU CSV",
+    data=gpu_csv,
+    file_name=f"gpu_pricing_{today.strftime('%Y%m%d')}.csv",
+    mime="text/csv"
+)
