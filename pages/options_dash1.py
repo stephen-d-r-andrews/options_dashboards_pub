@@ -57,6 +57,16 @@ PRICE_FIELD = st.sidebar.selectbox(
     help="Use bid/ask midpoint or last traded price"
 )
 
+RISK_FREE_RATE = st.sidebar.number_input(
+    "Risk-Free Rate (%)",
+    min_value=0.0,
+    max_value=20.0,
+    value=4.5,
+    step=0.1,
+    format="%.2f",
+    help="Annual risk-free interest rate as a percentage"
+) / 100.0  # Convert percentage to decimal
+
 
 # -----------------------------
 # Helpers
@@ -157,6 +167,7 @@ for idx, symbol in enumerate(TICKERS):
         "Implied Vol": np.nan,
         "Relative % (Put/Spot)": np.nan,
         "Yield % (Put/Strike)": np.nan,
+        "Forward Value": np.nan,
     }
 
     # Update progress
@@ -216,6 +227,11 @@ for idx, symbol in enumerate(TICKERS):
             row["Relative % (Put/Spot)"] = put_cost / spot
         if np.isfinite(put_cost) and put_cost > 0 and strike > 0:
             row["Yield % (Put/Strike)"] = put_cost / strike
+
+        # Forward Value calculation: target_strike * spot * e^(rate * time)
+        if np.isfinite(target_strike) and np.isfinite(spot) and np.isfinite(dte):
+            time_years = dte / 365.0
+            row["Forward Value"] = target_strike * spot * np.exp(RISK_FREE_RATE * time_years)
 
     except Exception as e:
         row["Error"] = str(e)
@@ -295,7 +311,7 @@ st.subheader("📋 Detailed Results")
 
 df_out = df.copy()
 
-money_cols = ["Current Spot", "Target Strike", "Closest Strike", "Put Cost"]
+money_cols = ["Current Spot", "Target Strike", "Closest Strike", "Put Cost", "Forward Value"]
 pct_cols = ["Relative % (Put/Spot)", "Yield % (Put/Strike)", "Implied Vol"]
 
 for col in money_cols:
