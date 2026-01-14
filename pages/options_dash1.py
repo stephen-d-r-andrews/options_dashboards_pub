@@ -67,6 +67,16 @@ RISK_FREE_RATE = st.sidebar.number_input(
     help="Annual risk-free interest rate as a percentage"
 ) / 100.0  # Convert percentage to decimal
 
+GPU_PRICE_CHANGE_RATE = st.sidebar.number_input(
+    "GPU Price Change Rate (% per year)",
+    min_value=-50.0,
+    max_value=50.0,
+    value=-20.0,
+    step=1.0,
+    format="%.1f",
+    help="Annual GPU price change rate (negative for depreciation, positive for appreciation)"
+) / 100.0  # Convert percentage to decimal
+
 
 # -----------------------------
 # Helpers
@@ -345,12 +355,17 @@ gpu_data = {
 }
 
 gpu_df = pd.DataFrame(gpu_data)
-gpu_df["30% of MSRP"] = gpu_df["MSRP"] * 0.30
+
+# Calculate predicted market price after TARGET_MONTHS
+time_years_gpu = TARGET_MONTHS / 12.0
+gpu_df["Predicted Market Price"] = gpu_df["MSRP"] * np.exp(GPU_PRICE_CHANGE_RATE * time_years_gpu)
+gpu_df["30% of Predicted Price"] = gpu_df["Predicted Market Price"] * 0.30
 
 # Format for display
 gpu_df_display = gpu_df.copy()
 gpu_df_display["MSRP"] = gpu_df_display["MSRP"].map(lambda v: f"${v:,.2f}")
-gpu_df_display["30% of MSRP"] = gpu_df_display["30% of MSRP"].map(lambda v: f"${v:,.2f}")
+gpu_df_display["Predicted Market Price"] = gpu_df_display["Predicted Market Price"].map(lambda v: f"${v:,.2f}")
+gpu_df_display["30% of Predicted Price"] = gpu_df_display["30% of Predicted Price"].map(lambda v: f"${v:,.2f}")
 
 st.dataframe(gpu_df_display, use_container_width=True)
 
