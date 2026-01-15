@@ -351,21 +351,33 @@ st.subheader("🖥️ GPU Pricing Analysis")
 
 gpu_data = {
     "GPU": ["H100SXM", "H100PCIE", "H200", "B200", "MI300X", "RTX5090"],
-    "MSRP": [40000, 32000, 45000, 55000, 15000, 1999]
+    "MSRP": [30000, 27500, 35000, 40000, 10000, 1999],
+    "Release Date": ["2022-03-22", "2022-03-22", "2023-11-13", "2024-03-18", "2023-12-06", "2025-01-06"]
 }
 
 gpu_df = pd.DataFrame(gpu_data)
 
-# Calculate predicted market price after TARGET_MONTHS
-time_years_gpu = TARGET_MONTHS / 12.0
-gpu_df["Predicted Market Price"] = gpu_df["MSRP"] * np.exp(GPU_PRICE_CHANGE_RATE * time_years_gpu)
-gpu_df["30% of Predicted Price"] = gpu_df["Predicted Market Price"] * 0.30
+# Convert release dates to datetime
+gpu_df["Release Date"] = pd.to_datetime(gpu_df["Release Date"])
+
+# Calculate days since release
+gpu_df["Days Since Release"] = (pd.Timestamp(today) - gpu_df["Release Date"]).dt.days
+
+# Calculate depreciated value from MSRP to today based on days since release
+gpu_df["Depreciated Value"] = gpu_df.apply(
+    lambda row: row["MSRP"] * np.exp(GPU_PRICE_CHANGE_RATE * (row["Days Since Release"] / 365.0)),
+    axis=1
+)
+
+# Calculate 30% of depreciated value
+gpu_df["30% of Depreciated Value"] = gpu_df["Depreciated Value"] * 0.30
 
 # Format for display
 gpu_df_display = gpu_df.copy()
+gpu_df_display["Release Date"] = gpu_df_display["Release Date"].dt.strftime("%Y-%m-%d")
 gpu_df_display["MSRP"] = gpu_df_display["MSRP"].map(lambda v: f"${v:,.2f}")
-gpu_df_display["Predicted Market Price"] = gpu_df_display["Predicted Market Price"].map(lambda v: f"${v:,.2f}")
-gpu_df_display["30% of Predicted Price"] = gpu_df_display["30% of Predicted Price"].map(lambda v: f"${v:,.2f}")
+gpu_df_display["Depreciated Value"] = gpu_df_display["Depreciated Value"].map(lambda v: f"${v:,.2f}")
+gpu_df_display["30% of Depreciated Value"] = gpu_df_display["30% of Depreciated Value"].map(lambda v: f"${v:,.2f}")
 
 st.dataframe(gpu_df_display, use_container_width=True)
 
